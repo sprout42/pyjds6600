@@ -274,6 +274,18 @@ class JDS6600:
         if output is not None and output == Output.ON:
             self.set_output(output, which)
 
+    def profile_save(self, profile=0):
+        assert profile >= 0 and profile <= 99
+        self._set(Command.PROFILE_SAVE, profile)
+
+    def profile_load(self, profile=0):
+        assert profile >= 0 and profile <= 99
+        self._set(Command.PROFILE_LOAD`, profile)
+
+    def profile_clear(self, profile=0):
+        assert profile >= 0 and profile <= 99
+        self._set(Command.PROFILE_CLEAR, profile)
+
     def _get_per_channel(self, cmds, which, convert, *args):
         # Utility function that can run _get() commands for both channels and 
         # converts the results using the function/type conversion provided.
