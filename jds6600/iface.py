@@ -271,7 +271,7 @@ class JDS6600:
         # are always whole numbers.
         value = args[0]
         units = Frequency(args[1])
-        mult, _ = self._tgt_freq_conv[units][0]
+        mult, _ = self._tgt_freq_conv[units]
 
         freq = value / mult
         return freq
