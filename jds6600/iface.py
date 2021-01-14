@@ -1,6 +1,18 @@
 import serial
+import serial.tools.list_ports
 
 from .types import *
+
+
+def find_device():
+    """
+    Identifies if there are any USB devices that match the VID:PID expected for
+    the JDS6600 function generator.
+    """
+    found = [p for p in serial.tools.list_ports.grep('1a86:7523')]
+    if found:
+        return found[0].device
+    return None
 
 
 class JDS6600:
@@ -42,12 +54,18 @@ class JDS6600:
         Frequency.uHz: (100.0 * 1000000.0, 80.0),
     }
 
-    def __init__(self, port, baudrate=115200, verbose=False, fix_read_bug=True, timeout=0.5, write_timeout=0.5, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE):
+    def __init__(self, port=None, baudrate=115200, verbose=False, fix_read_bug=True, timeout=0.5, write_timeout=0.5, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE):
         self.verbose = verbose
 
         # On some models the read "register" for the system settings are the 
         # write register + 1.  Setting this flag enables that workaround.
         self.fix_read_bug = fix_read_bug
+
+        # If the port was not specified find it automatically
+        if port is None:
+            port = find_device()
+            if port is None:
+                raise Exception('JDS6600 USB device not found')
 
         self._args = {
             'port': port,
