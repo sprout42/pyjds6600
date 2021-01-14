@@ -89,7 +89,7 @@ class Channel(enum.IntEnum):
     NONE = 3
 
 
-class Status(enum.IntEnum):
+class Output(enum.IntEnum):
     OFF = 0
     ON  = 1
 
@@ -297,7 +297,7 @@ class MeasureMode(enum.IntEnum):
 __all__ = [
     'Command',
     'Channel',
-    'Status',
+    'Output',
     'Waveform',
     'Frequency',
     'UIMode',

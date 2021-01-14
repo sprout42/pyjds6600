@@ -4,6 +4,17 @@ import serial.tools.list_ports
 from .types import *
 
 
+def _check_arg_type(value, typ):
+    # Utility to verify that function params are the proper type for the set_* 
+    # operations in the JDS6600 class
+    if not isinstance(value, typ):
+        typ_type = next(type(x.value) for x in typ)
+        typ_values = tuple(x.value for x in typ)
+        if not isinstance(value, typ_type) or \
+                value not in typ_values:
+            raise ValueError(f'Invalid param value: {value}, should be one of {typ}')
+
+
 def find_device():
     """
     Identifies if there are any USB devices that match the VID:PID expected for
@@ -187,23 +198,23 @@ class JDS6600:
     def get_serial_number(self):
         return self._get(Command.SERIAL_NUMBER)
 
-    def get_channel(self, which=Channel.BOTH):
+    def get_output(self, which=Channel.BOTH):
         resp = self._get(Command.CHANNEL_ENABLE)
         if which == Channel.BOTH:
             ch1, ch2 = resp
-            return (Status(ch1), Status(ch2))
+            return (Output(ch1), Output(ch2))
         else:
-            # This command always returns both channel statuses
-            return Status(resp[which])
+            # This command always returns both channel output statuses
+            return Output(resp[which])
 
-    def set_channel(self, value, which=Channel.BOTH):
-        assert isinstance(value, Status)
+    def set_output(self, value, which=Channel.BOTH):
+        _check_arg_type(value, Output)
         if which == Channel.BOTH:
             self._set(Command.CHANNEL_ENABLE, value, value)
         elif which != Channel.NONE:
             # If the user is only enabling or disabling 1 channel then we need 
             # to know the current state of the channels first.
-            channel_states = list(self.get_channel())
+            channel_states = list(self.get_output())
 
             # Change the desired channel
             channel_states[which] = value
@@ -211,14 +222,39 @@ class JDS6600:
             # Set the new values
             self._set(Command.CHANNEL_ENABLE, *channel_states)
 
-    def config_channel(self, waveform=None, frequency=None, amplitude=None, offset=None, dutycycle=None, status=None, which=Channel.BOTH):
+    def get_config(self, which=Channel.BOTH):
+        # Allows retrieving multiple settings at the same time for one or both 
+        # channels
+        keys = ['waveform', 'frequency', 'amplitude', 'offset', 'dutycycle', 'output']
+        out = [
+            self.get_waveform(which),
+            self.get_frequency(which),
+            self.get_amplitude(which),
+            self.get_offset(which),
+            self.get_dutycycle(which),
+            self.get_output(which),
+        ]
+
+        if which == Channel.BOTH:
+            # Both channels 1 and 2 values are in the output list, so split it 
+            # into different configs
+            ch1_config = dict((k, v[0]) for k, v in zip(keys, out))
+            ch2_config = dict((k, v[1]) for k, v in zip(keys, out))
+            return (ch1_config, ch2_config)
+        elif which != Channel.NONE:
+            config = dict((k, v) for k, v in zip(keys, out))
+            return (ch1_config, ch2_config)
+        else:
+            return None
+
+    def set_config(self, waveform=None, frequency=None, amplitude=None, offset=None, dutycycle=None, output=None, which=Channel.BOTH):
         # Allows setting one or more settings at the same time for one or both 
         # channels
 
-        # Special handling of the "status" value.  If it is not None and the 
+        # Special handling of the "output" value.  If it is not None and the 
         # value is OFF, turn off the channels before changing any values.
-        if status is not None and status == Status.OFF:
-            self.set_channel(status, which)
+        if output is not None and output == Output.OFF:
+            self.set_output(output, which)
 
         # Change the other settings now
         if waveform is not None:
@@ -232,11 +268,11 @@ class JDS6600:
         if dutycycle is not None:
             self.set_dutycycle(dutycycle, which)
 
-        # Special handling of the "status" value.  If it is not None and the 
+        # Special handling of the "output" value.  If it is not None and the 
         # value is ON, turn on the channels after all of the other values have 
         # been set.
-        if status is not None and status == Status.ON:
-            self.set_channel(status, which)
+        if output is not None and output == Output.ON:
+            self.set_output(output, which)
 
     def _get_per_channel(self, cmds, which, convert, *args):
         # Utility function that can run _get() commands for both channels and 
@@ -261,7 +297,7 @@ class JDS6600:
         return self._get_per_channel(cmds, which, Waveform)
 
     def set_waveform(self, value, which=Channel.BOTH):
-        assert isinstance(value, Waveform)
+        _check_arg_type(value, Waveform)
         cmds = (Command.WAVEFORM_CH1, Command.WAVEFORM_CH2)
         self._set_per_channel(cmds, which, value)
 
@@ -398,7 +434,7 @@ class JDS6600:
         return Action(self._get(Command.ACTION))
 
     def set_action(self, action):
-        assert isinstance(action, Action)
+        _check_arg_type(action, Action)
 
         # TODO: Ensure that the UI is in the right mode or else we will get "OK" 
         # back but no action will be performed (doesn't seem to help?)
@@ -410,7 +446,7 @@ class JDS6600:
         return UIMode(self._get(Command.UI_MODE))
 
     def set_ui_mode(self, value):
-        assert isinstance(value, UIMode)
+        _check_arg_type(value, UIMode)
         self._set(Command.UI_MODE, value)
 
     # TODO: Lots more commands need to have set/get functions implemented.
