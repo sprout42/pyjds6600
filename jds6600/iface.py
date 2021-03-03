@@ -67,6 +67,7 @@ class JDS6600:
 
     def __init__(self, port=None, baudrate=115200, verbose=False, fix_read_bug=True, timeout=0.5, write_timeout=0.5, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE):
         self.verbose = verbose
+        self._serial = None
 
         # On some models the read "register" for the system settings are the 
         # write register + 1.  Setting this flag enables that workaround.
@@ -90,7 +91,6 @@ class JDS6600:
             'stopbits': stopbits,
         }
 
-        self._serial = None
         self.open()
 
     def __del__(self):
