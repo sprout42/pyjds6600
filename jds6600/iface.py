@@ -280,7 +280,7 @@ class JDS6600:
 
     def profile_load(self, profile=0):
         assert profile >= 0 and profile <= 99
-        self._set(Command.PROFILE_LOAD`, profile)
+        self._set(Command.PROFILE_LOAD, profile)
 
     def profile_clear(self, profile=0):
         assert profile >= 0 and profile <= 99
